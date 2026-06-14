@@ -6,7 +6,9 @@ no more digging four levels deep into Settings.
 ## Commands
 
 - **Search Hide My Email** — fuzzy-search all your addresses by address, label or note.
-  Copy/paste an address, edit its label & note, deactivate/reactivate, or delete.
+  Copy/paste an address, edit its label & note, deactivate/reactivate, or delete. Also
+  has a **Sign Out (reset 2FA)** action to clear the saved session and force a fresh
+  sign-in.
 - **Create Hide My Email** — generate a fresh address, give it a label, reserve it, and
   it's copied to your clipboard.
 
@@ -24,8 +26,13 @@ private endpoints that the iCloud.com Mail settings page uses
 It signs in with your **Apple ID** using Apple's **SRP** handshake (your password is
 never sent to Apple in the clear — SRP proves you know it without transmitting it), then
 stores a **trust token** so you only need to enter a two-factor code **about once a
-month**. On every run it re-authenticates from that trust token to mint a fresh session,
-so there are no cookies to manage or re-paste.
+month**. There are no cookies to manage or re-paste.
+
+The authenticated session (cookies + service URLs) is **cached for an hour**, so repeat
+runs are instant and don't re-hit Apple's login — which also avoids Apple's rate-limiting.
+If the session expires mid-use, the extension silently re-authenticates from the trust
+token and retries. Use **Sign Out (reset 2FA)** in the Search command to clear everything
+and start fresh.
 
 ### Setup
 
