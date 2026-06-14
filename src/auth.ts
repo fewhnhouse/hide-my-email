@@ -230,8 +230,27 @@ async function triggerMfaPush(): Promise<void> {
   }
 }
 
-/** Performs SRP sign-in. Returns "ready" if trusted, or "mfa" if a code is needed. */
-export async function signIn(): Promise<"ready" | "mfa"> {
+let signInInFlight: Promise<"ready" | "mfa"> | null = null;
+
+/**
+ * Performs SRP sign-in. Returns "ready" if trusted, or "mfa" if a code is needed.
+ *
+ * De-duplicates concurrent calls: Raycast/React can fire the auth effect twice
+ * on mount (StrictMode), and two parallel SRP flows would clobber each other's
+ * shared session secrets (scnt/aasp/sessionId) — making the first attempt fail
+ * and also invalidating the 2FA push. Sharing one in-flight promise prevents that.
+ */
+export function signIn(): Promise<"ready" | "mfa"> {
+  if (session.phase === "ready") return Promise.resolve("ready");
+  if (!signInInFlight) {
+    signInInFlight = doSignIn().finally(() => {
+      signInInFlight = null;
+    });
+  }
+  return signInInFlight;
+}
+
+async function doSignIn(): Promise<"ready" | "mfa"> {
   if (session.phase === "ready") return "ready";
   if (!prefs.appleId || !prefs.password) {
     throw new InvalidCredentialsError(
