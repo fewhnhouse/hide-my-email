@@ -10,7 +10,7 @@ import {
   useNavigation,
 } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateHme, reserveHme } from "./icloud";
 import { AuthGate } from "./auth-gate";
 
@@ -24,6 +24,10 @@ export function CreateForm({ onCreated }: CreateFormProps) {
   const navigation = useNavigation();
   const [hme, setHme] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  // Guards against React's double-invoked mount effect (StrictMode) generating
+  // — and the submit handler reserving — an address twice.
+  const didGenerate = useRef(false);
+  const isReserving = useRef(false);
 
   async function generate() {
     setIsLoading(true);
@@ -37,11 +41,13 @@ export function CreateForm({ onCreated }: CreateFormProps) {
   }
 
   useEffect(() => {
+    if (didGenerate.current) return;
+    didGenerate.current = true;
     generate();
   }, []);
 
   async function submit(values: { label: string; note: string }) {
-    if (!hme) return;
+    if (!hme || isReserving.current) return;
     if (!values.label.trim()) {
       await showToast({
         style: Toast.Style.Failure,
@@ -50,6 +56,7 @@ export function CreateForm({ onCreated }: CreateFormProps) {
       return;
     }
 
+    isReserving.current = true;
     const toast = await showToast({
       style: Toast.Style.Animated,
       title: "Reserving address",
@@ -65,6 +72,7 @@ export function CreateForm({ onCreated }: CreateFormProps) {
       if (onCreated) navigation.pop();
       else await popToRoot();
     } catch (err) {
+      isReserving.current = false;
       await showFailureToast(err, { title: "Could not reserve the address" });
     }
   }
