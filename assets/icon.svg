@@ -1,33 +1,32 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="env" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5CB1FF"/>
-      <stop offset="1" stop-color="#1E86FF"/>
+      <stop offset="0" stop-color="#4DA6FF"/>
+      <stop offset="1" stop-color="#1B82FB"/>
     </linearGradient>
     <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#52A9FF"/>
-      <stop offset="1" stop-color="#1877F0"/>
+      <stop offset="0" stop-color="#3D9BFF"/>
+      <stop offset="1" stop-color="#0C66E0"/>
     </linearGradient>
-    <path id="shieldPath" d="M398 308 L444 308 Q454 308 454 320 L454 358
-                            Q454 408 398 432 Q342 408 342 358 L342 320
-                            Q342 308 352 308 Z"/>
-    <clipPath id="shieldClip"><use href="#shieldPath"/></clipPath>
   </defs>
 
   <!-- Envelope body -->
-  <rect x="40" y="116" width="372" height="272" rx="48"
-        fill="url(#env)" stroke="#ffffff" stroke-width="22"/>
+  <rect x="48" y="130" width="372" height="252" rx="46" fill="url(#env)"/>
 
-  <!-- Crossed seams: flap (down-V) crossing the back seams (up-V) -->
-  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M62 150 L226 286 L390 150"/>
-    <path d="M62 354 L226 236 L390 354"/>
-  </g>
+  <!-- Flap -->
+  <path d="M74 162 L234 282 L394 162" fill="none" stroke="#ffffff"
+        stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Security shield badge (bottom-right) -->
-  <use href="#shieldPath" fill="url(#shield)" stroke="#ffffff" stroke-width="13" stroke-linejoin="round"/>
-  <g clip-path="url(#shieldClip)">
-    <rect x="338" y="300" width="60" height="140" fill="#ffffff"/>
-  </g>
-  <path d="M398 308 L398 432" stroke="#1877F0" stroke-width="6" stroke-linecap="round"/>
+  <!-- white moat for clean separation from the envelope -->
+  <path d="M332 318 Q332 300 350 300 L446 300 Q464 300 464 318
+           L464 363 C464 417 427 446 398 450
+           C369 446 332 417 332 363 Z" fill="#ffffff"/>
+  <!-- shield -->
+  <path d="M346 328 Q346 312 362 312 L434 312 Q450 312 450 328
+           L450 364 C450 409 421 433 398 436
+           C375 433 346 409 346 364 Z" fill="url(#shield)"/>
+  <!-- checkmark -->
+  <path d="M374 376 L392 396 L424 352" fill="none" stroke="#ffffff"
+        stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
