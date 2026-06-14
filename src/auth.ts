@@ -165,6 +165,50 @@ interface Session {
 
 const session: Session = { phase: "idle", cookies: [] };
 const trustKey = `trust-token:${prefs.appleId.toLowerCase()}`;
+const sessionKey = `session-cache:${prefs.appleId.toLowerCase()}`;
+// Reuse a session this long before re-running SRP, to avoid Apple rate-limiting.
+// Staleness within the window is still handled by retry-on-expiry in authedFetch.
+const SESSION_TTL_MS = 60 * 60 * 1000;
+
+/** Loads cached cookies + webservices so repeat command runs skip SRP entirely. */
+async function loadSessionCache(): Promise<boolean> {
+  try {
+    const raw = await LocalStorage.getItem<string>(sessionKey);
+    if (!raw) return false;
+    const c = JSON.parse(raw) as {
+      cookies: string[];
+      webservices: Session["webservices"];
+      ts: number;
+    };
+    if (!c.cookies?.length || !c.webservices?.premiummailsettings?.url)
+      return false;
+    if (Date.now() - c.ts > SESSION_TTL_MS) return false;
+    session.cookies = c.cookies;
+    session.webservices = c.webservices;
+    session.phase = "ready";
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function saveSessionCache(): Promise<void> {
+  await LocalStorage.setItem(
+    sessionKey,
+    JSON.stringify({
+      cookies: session.cookies,
+      webservices: session.webservices,
+      ts: Date.now(),
+    }),
+  );
+}
+
+async function clearSessionCache(): Promise<void> {
+  session.phase = "idle";
+  session.cookies = [];
+  session.webservices = undefined;
+  await LocalStorage.removeItem(sessionKey);
+}
 
 function setCookiesFrom(res: Response) {
   const set = res.headers.getSetCookie?.() ?? [];
@@ -216,6 +260,7 @@ async function accountLogin(): Promise<void> {
   }
   session.webservices = data.webservices;
   session.phase = "ready";
+  await saveSessionCache();
 }
 
 /** Asks Apple to push a 2FA code to trusted devices (required since early 2026). */
@@ -252,6 +297,8 @@ export function signIn(): Promise<"ready" | "mfa"> {
 
 async function doSignIn(): Promise<"ready" | "mfa"> {
   if (session.phase === "ready") return "ready";
+  // Fast path: reuse a recent session and skip the SRP round-trips entirely.
+  if (await loadSessionCache()) return "ready";
   if (!prefs.appleId || !prefs.password) {
     throw new InvalidCredentialsError(
       "Add your Apple ID and password in the extension preferences.",
@@ -333,21 +380,20 @@ export async function submitMfa(code: string): Promise<void> {
   await accountLogin();
 }
 
-/** Forgets the stored trust token (forces 2FA on next sign-in). */
+/** Forgets the cached session and trust token (forces a fresh 2FA sign-in). */
 export async function signOut(): Promise<void> {
   await LocalStorage.removeItem(trustKey);
-  session.phase = "idle";
-  session.cookies = [];
   session.trustToken = undefined;
+  await clearSessionCache();
 }
 
-export interface RequestContext {
+interface RequestContext {
   baseUrl: string;
   headers: Record<string, string>;
 }
 
 /** Returns the authenticated context for premiummailsettings calls. */
-export async function getContext(): Promise<RequestContext> {
+async function getContext(): Promise<RequestContext> {
   if (session.phase !== "ready" || !session.webservices) {
     const result = await signIn();
     if (result !== "ready") {
@@ -358,4 +404,30 @@ export async function getContext(): Promise<RequestContext> {
     baseUrl: session.webservices!.premiummailsettings.url,
     headers: { ...DEFAULT_HEADERS, Cookie: session.cookies.join("; ") },
   };
+}
+
+/**
+ * Fetches a premiummailsettings path with the authenticated session. If the
+ * session has expired (401/421/450), clears the cache, re-authenticates once
+ * (silently, via the trust token) and retries.
+ */
+export async function authedFetch(
+  path: string,
+  init: { method: "GET" | "POST"; body?: string },
+): Promise<Response> {
+  const doFetch = async () => {
+    const ctx = await getContext();
+    return fetch(`${ctx.baseUrl}${path}`, {
+      method: init.method,
+      headers: ctx.headers,
+      body: init.body,
+    });
+  };
+
+  let res = await doFetch();
+  if (res.status === 401 || res.status === 421 || res.status === 450) {
+    await clearSessionCache();
+    res = await doFetch();
+  }
+  return res;
 }

@@ -1,4 +1,4 @@
-import { getContext, ICloudError } from "./auth";
+import { authedFetch, ICloudError } from "./auth";
 
 /**
  * Client for iCloud's private "Hide My Email" (premiummailsettings) API.
@@ -44,12 +44,10 @@ async function pms<T>(
   path: string,
   data?: Record<string, unknown>,
 ): Promise<T> {
-  const ctx = await getContext();
   let res: Response;
   try {
-    res = await fetch(`${ctx.baseUrl}${path}`, {
+    res = await authedFetch(path, {
       method,
-      headers: ctx.headers,
       body: data !== undefined ? JSON.stringify(data) : undefined,
     });
   } catch (err) {

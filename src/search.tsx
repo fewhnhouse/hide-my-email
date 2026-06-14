@@ -23,6 +23,7 @@ import {
 } from "./icloud";
 import { CreateForm } from "./create";
 import { AuthGate } from "./auth-gate";
+import { signOut } from "./auth";
 import { useState } from "react";
 
 export default function SearchCommand() {
@@ -196,6 +197,20 @@ function SearchView() {
                   title="Open Extension Preferences"
                   icon={Icon.Gear}
                   onAction={openExtensionPreferences}
+                />
+                <Action
+                  title="Sign Out (Reset 2FA)"
+                  icon={Icon.Logout}
+                  style={Action.Style.Destructive}
+                  onAction={async () => {
+                    await signOut();
+                    await showToast({
+                      style: Toast.Style.Success,
+                      title: "Signed out",
+                      message: "Reopen the command to sign in again.",
+                    });
+                    revalidate();
+                  }}
                 />
               </ActionPanel.Section>
             </ActionPanel>
