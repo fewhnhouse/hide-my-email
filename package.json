@@ -1,0 +1,66 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "hide-my-email",
+  "title": "Hide My Email",
+  "description": "Create, search and manage your iCloud Hide My Email addresses without digging through Settings.",
+  "icon": "extension-icon.png",
+  "author": "felixwohnhaas",
+  "categories": ["Productivity", "Security"],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "search",
+      "title": "Search Hide My Email",
+      "subtitle": "iCloud",
+      "description": "Search, copy and manage your existing Hide My Email addresses.",
+      "mode": "view"
+    },
+    {
+      "name": "create",
+      "title": "Create Hide My Email",
+      "subtitle": "iCloud",
+      "description": "Generate and reserve a new Hide My Email address.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "cookie",
+      "title": "iCloud Cookie",
+      "description": "The Cookie request header copied from an authenticated icloud.com session. See the README for how to obtain it.",
+      "type": "password",
+      "required": true
+    },
+    {
+      "name": "region",
+      "title": "Region",
+      "description": "Use the standard or the China (icloud.com.cn) iCloud endpoints.",
+      "type": "dropdown",
+      "required": false,
+      "default": "global",
+      "data": [
+        { "title": "Global", "value": "global" },
+        { "title": "China", "value": "china" }
+      ]
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.99.0",
+    "@raycast/utils": "^1.19.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.0.4",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.0",
+    "eslint": "^9.22.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "lint": "ray lint",
+    "fix-lint": "ray lint --fix",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
