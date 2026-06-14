@@ -4,38 +4,33 @@ import {
   Clipboard,
   Form,
   Icon,
-  Toast,
-  openExtensionPreferences,
   popToRoot,
   showToast,
+  Toast,
   useNavigation,
 } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import { useEffect, useState } from "react";
-import { generateHme, NotAuthenticatedError, reserveHme } from "./icloud";
+import { generateHme, reserveHme } from "./icloud";
+import { AuthGate } from "./auth-gate";
 
-interface CreateHmeProps {
+interface CreateFormProps {
   /** Called after a successful reservation, e.g. to refresh the search list. */
   onCreated?: () => void;
 }
 
-export default function CreateHme({ onCreated }: CreateHmeProps) {
+/** The create form itself. Assumes iCloud auth has already succeeded. */
+export function CreateForm({ onCreated }: CreateFormProps) {
   const navigation = useNavigation();
   const [hme, setHme] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
 
   async function generate() {
     setIsLoading(true);
-    setError(undefined);
     try {
       setHme(await generateHme());
     } catch (err) {
-      if (err instanceof NotAuthenticatedError) {
-        setError(err.message);
-      } else {
-        await showFailureToast(err, { title: "Could not generate an address" });
-      }
+      await showFailureToast(err, { title: "Could not generate an address" });
     } finally {
       setIsLoading(false);
     }
@@ -72,29 +67,6 @@ export default function CreateHme({ onCreated }: CreateHmeProps) {
     } catch (err) {
       await showFailureToast(err, { title: "Could not reserve the address" });
     }
-  }
-
-  if (error) {
-    return (
-      <Form
-        actions={
-          <ActionPanel>
-            <Action
-              title="Open Extension Preferences"
-              icon={Icon.Gear}
-              onAction={openExtensionPreferences}
-            />
-            <Action
-              title="Try Again"
-              icon={Icon.ArrowClockwise}
-              onAction={generate}
-            />
-          </ActionPanel>
-        }
-      >
-        <Form.Description title="Not signed in" text={error} />
-      </Form>
-    );
   }
 
   return (
@@ -135,4 +107,8 @@ export default function CreateHme({ onCreated }: CreateHmeProps) {
       />
     </Form>
   );
+}
+
+export default function CreateCommand() {
+  return <AuthGate>{() => <CreateForm />}</AuthGate>;
 }

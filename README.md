@@ -13,7 +13,7 @@ no more digging four levels deep into Settings.
 ## Requirements
 
 - An **iCloud+** subscription (Hide My Email is part of iCloud+).
-- A logged-in `icloud.com` session in your browser to copy a cookie from (see below).
+- Your Apple ID credentials, and a trusted device to receive the 2FA code on.
 
 ## Authentication: how it works & setup
 
@@ -21,27 +21,30 @@ There is **no official Apple API** for Hide My Email. This extension talks to th
 private endpoints that the iCloud.com Mail settings page uses
 (`setup.icloud.com` → `pXX-maildomains.icloud.com/v1/hme/*`).
 
-Rather than re-implementing Apple's fragile SRP login + 2FA flow (the approach that
-repeatedly breaks other tools), this extension **reuses your existing browser session**
-by replaying its cookies. You paste them in once; refresh when they expire.
+It signs in with your **Apple ID** using Apple's **SRP** handshake (your password is
+never sent to Apple in the clear — SRP proves you know it without transmitting it), then
+stores a **trust token** so you only need to enter a two-factor code **about once a
+month**. On every run it re-authenticates from that trust token to mint a fresh session,
+so there are no cookies to manage or re-paste.
 
-### Getting your cookie
+### Setup
 
-1. Open <https://www.icloud.com> in your browser and sign in.
-2. Open **Developer Tools → Network**.
-3. Click **Mail**, then open its **Settings → Hide My Email** so a request to
-   `*maildomains.icloud.com` or `setup.icloud.com` appears.
-4. Click that request → **Headers** → find the **`Cookie`** request header → copy its
-   **entire value**.
-5. In Raycast, run either command once; it will prompt for preferences. Paste the value
-   into **iCloud Cookie**. (At minimum it must contain the `X-APPLE-WEBAUTH-*` and
-   `X-APPLE-DS-WEB-SESSION-TOKEN` cookies.)
+1. Run either command. On first launch Raycast prompts for preferences.
+2. Enter your **Apple ID** (e.g. `you@icloud.com`) and **Password**.
+3. The first time, you'll be asked for the **6-digit verification code** Apple pushes to
+   your trusted devices. Enter it once; the trust token is saved for ~30 days.
+4. Set **Region → China** if you use an `icloud.com.cn` account.
 
-> **Heads up:** these cookies grant access to your iCloud account. They're stored in
-> Raycast's encrypted preferences and sent only to Apple. They expire periodically — when
-> you start seeing "session expired" errors, repeat the steps above to refresh.
+> **Security:** your password is stored only in Raycast's encrypted preferences and used
+> solely for Apple's SRP login. The trust token lives in Raycast's local storage. Nothing
+> is sent anywhere except Apple.
 
-Set **Region → China** if you use an `icloud.com.cn` account.
+### SRP credit
+
+The SRP-6a (GSA) implementation is provided by
+[`@foxt/js-srp`](https://www.npmjs.com/package/@foxt/js-srp); the login orchestration is
+ported from [foxt/icloud.js](https://github.com/foxt/icloud.js) and
+[mandarons/icloudpy](https://github.com/mandarons/icloudpy).
 
 ## Development
 

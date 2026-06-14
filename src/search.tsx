@@ -18,15 +18,19 @@ import {
   deleteHme,
   HmeEmail,
   listHme,
-  NotAuthenticatedError,
   reactivateHme,
   updateHmeMetadata,
 } from "./icloud";
-import CreateHme from "./create";
+import { CreateForm } from "./create";
+import { AuthGate } from "./auth-gate";
 import { useState } from "react";
 
 export default function SearchCommand() {
-  const { data, isLoading, revalidate, error } = useCachedPromise(listHme, [], {
+  return <AuthGate>{() => <SearchView />}</AuthGate>;
+}
+
+function SearchView() {
+  const { data, isLoading, revalidate } = useCachedPromise(listHme, [], {
     keepPreviousData: true,
   });
   const [showInactive, setShowInactive] = useState(true);
@@ -34,10 +38,6 @@ export default function SearchCommand() {
   const emails = (data?.hmeEmails ?? [])
     .filter((e) => showInactive || e.isActive)
     .sort((a, b) => b.createTimestamp - a.createTimestamp);
-
-  if (error instanceof NotAuthenticatedError) {
-    return <AuthError message={error.message} />;
-  }
 
   async function withToast(title: string, fn: () => Promise<void>) {
     const toast = await showToast({ style: Toast.Style.Animated, title });
@@ -75,7 +75,7 @@ export default function SearchCommand() {
             <Action.Push
               title="Create New Address"
               icon={Icon.Plus}
-              target={<CreateHme onCreated={revalidate} />}
+              target={<CreateForm onCreated={revalidate} />}
             />
           </ActionPanel>
         }
@@ -117,7 +117,7 @@ export default function SearchCommand() {
                   title="Create New Address"
                   icon={Icon.Plus}
                   shortcut={{ modifiers: ["cmd"], key: "n" }}
-                  target={<CreateHme onCreated={revalidate} />}
+                  target={<CreateForm onCreated={revalidate} />}
                 />
                 <Action.Push
                   title="Edit Label / Note"
@@ -202,27 +202,6 @@ export default function SearchCommand() {
           }
         />
       ))}
-    </List>
-  );
-}
-
-function AuthError({ message }: { message: string }) {
-  return (
-    <List>
-      <List.EmptyView
-        icon={Icon.Lock}
-        title="Not signed in to iCloud"
-        description={message}
-        actions={
-          <ActionPanel>
-            <Action
-              title="Open Extension Preferences"
-              icon={Icon.Gear}
-              onAction={openExtensionPreferences}
-            />
-          </ActionPanel>
-        }
-      />
     </List>
   );
 }
